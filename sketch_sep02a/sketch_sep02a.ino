@@ -4,60 +4,44 @@
 
 const int numDevices = 4;
 DS3231 myRTC;
-DateTime myDT(2022, 9, 20, 18, 7, 00);
 
 LedControl lc = LedControl(11, 13, 10, numDevices);
 
 unsigned long delaytime = 1000;
 
+int hour;
+int mins;
+
+bool h12;
+bool hPM;
 
 void setup() {
   Serial.begin(9600);
   Wire.begin();
-  Serial.print(myDT.day());
   int devices = lc.getDeviceCount();
   for (int i = 0; i < devices; i++) {
     lc.shutdown(i, false);
     lc.setIntensity(i, 1);
     lc.clearDisplay(i);
   }
+
+  myRTC.setClockMode(false);
+  myRTC.setSecond(59);
+  myRTC.setMinute(3);
+  myRTC.setHour(17);
+  myRTC.setDoW(3);
+  myRTC.setDate(21);
+  myRTC.setMonth(9);
+  myRTC.setYear(22);
+
+  h12 = false;
+  hPM = false;
 }
 
-void writeArduinoOnMatrix() {
-  byte A[5] = {B01111110, B10001000, B10001000, B10001000, B01111110};
-  byte E[5] = {B11111110, B10010010, B10010010, B10010010, B10010010};
-  byte r[5] = {B00111110, B00010000, B00100000, B00100000, B00010000};
-  byte d[5] = {B00011100, B00100010, B00100010, B00010010, B11111110};
-  byte u[5] = {B00111100, B00000010, B00000010, B00000100, B00111110};
-  byte i[5] = {B00000000, B00100010, B10111110, B00000010, B00000000};
-  byte n[5] = {B00111110, B00010000, B00100000, B00100000, B00011110};
-  byte o[5] = {B00011100, B00100010, B00100010, B00100010, B00011100};
-  byte H[5] = {B11111110, B00010000, B00010000, B00010000, B11111110};
-  byte L[1] = {B11111110};
-  byte w[5] = {B00011100, B00000010, B00011100, B00000010, B00011100};
-
-  // E
-  lc.setColumn(3, 0, E[0]);
-  lc.setColumn(3, 1, E[1]);
-  lc.setColumn(3, 2, E[2]);
-  lc.setColumn(3, 3, E[3]);
-  lc.setColumn(3, 4, E[4]);
-
-  // w
-  lc.setColumn(3, 6, w[0]);
-  lc.setColumn(3, 7, w[1]);
-  lc.setColumn(2, 0, w[2]);
-  lc.setColumn(2, 1, w[3]);
-  lc.setColumn(2, 2, w[4]);
-}
 
 void writeTimeOnMatrix() {
-  int hour = myDT.hour();
-  int mins = myDT.minute();
-
-  Serial.print(hour % 10);
-  Serial.println(hour);
-
+  hour = myRTC.getHour(h12, hPM);
+  mins = myRTC.getMinute();
   byte zero[3] = {B00111110, B00100010, B00111110};
   byte one[3] = {B00000000, B00000000, B00111110};
   byte two[3] = {B00101110, B00101010, B00111010};
@@ -111,7 +95,7 @@ void writeTimeOnMatrix() {
 
   // 1st digit
   for (int i=0;i<9;i++) {
-    if ((hour % 10) == i) {
+    if ((mins % 10) == i) {
       lc.setColumn(1,6, nums[i][0]);
       lc.setColumn(1,7, nums[i][1]);
       lc.setColumn(0,0, nums[i][2]);
@@ -122,4 +106,5 @@ void writeTimeOnMatrix() {
 void loop() {
   int devices = lc.getDeviceCount();
   writeTimeOnMatrix();
+  Serial.println(myRTC.getSecond());
 }
